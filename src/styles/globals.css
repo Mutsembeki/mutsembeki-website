@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #050505;
+    --foreground: #ffffff;
+    --gold: #FFD700;
+    --gold-soft: #F4C542;
+    --brown: #2D1B12;
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar customizada */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0D0D0D;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 215, 0, 0.5);
+  }
+
+  /* Seleção de texto */
+  ::selection {
+    background: rgba(255, 215, 0, 0.3);
+    color: #FFD700;
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid #FFD700;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Glassmorphism */
+  .glass {
+    @apply backdrop-blur-md bg-glass border border-glass-border;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-xl bg-glass-strong border border-glass-border;
+  }
+
+  /* Gradiente de texto dourado */
+  .text-gradient {
+    @apply bg-gold-gradient bg-clip-text text-transparent;
+  }
+
+  /* Card base */
+  .card-base {
+    @apply rounded-2xl bg-card border border-glass-border p-6 transition-all duration-300;
+  }
+
+  /* Botão primário */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           bg-gold-gradient text-background font-semibold text-sm
+           shadow-gold transition-all duration-300
+           hover:shadow-gold-lg hover:scale-105 active:scale-95;
+  }
+
+  /* Botão secundário (outlined) */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           border border-gold text-gold font-semibold text-sm
+           bg-transparent transition-all duration-300
+           hover:bg-gold hover:text-background hover:shadow-gold-sm;
+  }
+
+  /* Botão ghost */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl
+           text-muted-foreground font-medium text-sm
+           hover:text-gold hover:bg-glass transition-all duration-200;
+  }
+
+  /* Input base */
+  .input-base {
+    @apply w-full px-4 py-3 rounded-xl bg-muted border border-glass-border
+           text-foreground placeholder:text-muted-foreground
+           focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold
+           transition-all duration-200;
+  }
+
+  /* Seção genérica */
+  .section-padding {
+    @apply py-16 md:py-24 px-4 md:px-8;
+  }
+
+  /* Container máximo */
+  .container-max {
+    @apply max-w-7xl mx-auto;
+  }
+
+  /* Título de secção */
+  .section-title {
+    @apply font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground;
+  }
+
+  /* Linha decorativa dourada */
+  .gold-divider {
+    @apply w-16 h-1 bg-gold-gradient rounded-full;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+           bg-glass border border-glass-border text-gold;
+  }
+
+  /* Player audio */
+  .audio-player {
+    @apply w-full rounded-xl overflow-hidden;
+  }
+
+  /* Letra de música */
+  .lyrics-content {
+    @apply whitespace-pre-line font-sans text-foreground leading-8 text-base md:text-lg;
+  }
+
+  .lyrics-content .verse-label {
+    @apply text-gold font-semibold text-sm uppercase tracking-widest mb-2 block;
+  }
+}
+
+@layer utilities {
+  /* Brilho de texto */
+  .text-glow {
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  }
+
+  /* Brilho de caixa */
+  .box-glow {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+  }
+
+  /* Padrão de fundo */
+  .bg-pattern {
+    background-image:
+      radial-gradient(circle at 25px 25px, rgba(255, 215, 0, 0.03) 2px, transparent 0),
+      radial-gradient(circle at 75px 75px, rgba(255, 215, 0, 0.03) 2px, transparent 0);
+    background-size: 100px 100px;
+  }
+
+  /* Animação de entrada */
+  .animate-in {
+    animation: fadeIn 0.6s ease-out both;
+  }
+
+  /* Mask de fade para galeria */
+  .mask-fade-bottom {
+    mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  }
+}
+
+/* Estilos do player de áudio nativo */
+audio {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  outline: none;
+}
+
+audio::-webkit-media-controls-panel {
+  background: rgba(45, 27, 18, 0.8);
+}
+
+/* Animação de partículas (para o hero) */
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.4; }
+  50% { transform: translateY(-30px) rotate(180deg); opacity: 0.8; }
+}
+
+.particle {
+  animation: particle-float var(--duration, 6s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}

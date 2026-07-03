@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  color     String?
+  songs     Song[]
+  createdAt DateTime @default(now())
+
+  @@map("categories")
+}
+
+model Album {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  coverImage  String?
+  description String?
+  releaseDate DateTime?
+  songs       Song[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("albums")
+}
+
+model Song {
+  id           String     @id @default(cuid())
+  title        String
+  slug         String     @unique
+  coverImage   String?
+  audioUrl     String?
+  youtubeUrl   String?
+  lyrics       String?
+  categoryId   String?
+  albumId      String?
+  releaseDate  DateTime?
+  featured     Boolean    @default(false)
+  published    Boolean    @default(true)
+  downloads    Download[]
+  views        View[]
+  category     Category?  @relation(fields: [categoryId], references: [id])
+  album        Album?     @relation(fields: [albumId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("songs")
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  songId    String
+  ipAddress String?
+  userAgent String?
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("downloads")
+}
+
+model View {
+  id        String   @id @default(cuid())
+  songId    String
+  ipAddress String?
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("views")
+}
+
+model PrayerRequest {
+  id        String              @id @default(cuid())
+  name      String
+  city      String?
+  request   String
+  isPublic  Boolean             @default(true)
+  status    PrayerRequestStatus @default(PENDING)
+  response  String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@map("prayer_requests")
+}
+
+model Testimony {
+  id        String           @id @default(cuid())
+  name      String
+  city      String?
+  content   String
+  status    TestimonyStatus  @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  @@map("testimonies")
+}
+
+model BlogPost {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  excerpt     String?
+  content     String
+  coverImage  String?
+  category    BlogCategory @default(REFLEXOES)
+  published   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("blog_posts")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  mapUrl      String?
+  date        DateTime
+  imageUrl    String?
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("events")
+}
+
+model NewsletterSubscriber {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("newsletter_subscribers")
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    MessageStatus @default(UNREAD)
+  createdAt DateTime      @default(now())
+
+  @@map("contact_messages")
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  title       String
+  youtubeUrl  String
+  category    String   @default("Vídeos Recentes")
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("videos")
+}
+
+model PageVisit {
+  id        String   @id @default(cuid())
+  path      String
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@map("page_visits")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PrayerRequestStatus {
+  PENDING
+  RESPONDED
+  ARCHIVED
+}
+
+enum TestimonyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BlogCategory {
+  REFLEXOES
+  DEVOCIONAIS
+  MENSAGENS
+  NOTICIAS
+}
+
+enum MessageStatus {
+  UNREAD
+  READ
+  REPLIED
+}
