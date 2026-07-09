@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: 'Reflexões, devocionais, mensagens e notícias do ministério Mutsembeki.',
 }
 
-export const revalidate = 1800
+export const revalidate = 60
 
 const categoryLabels: Record<string, string> = {
   REFLEXOES: 'Reflexões',

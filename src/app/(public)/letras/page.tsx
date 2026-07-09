@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'Letras de todas as músicas de Mutsembeki.',
 }
 
-export const revalidate = 1800
+export const revalidate = 60
 
 export default async function LetrasPage() {
   const songs = await prisma.song.findMany({

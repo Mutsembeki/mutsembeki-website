@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: 'Ouça e baixe todas as músicas de Mutsembeki. Louvor e adoração gospel.',
 }
 
-export const revalidate = 1800
+export const revalidate = 60
 
 export default async function MusicasPage() {
   const [songs, categories, albums] = await Promise.all([

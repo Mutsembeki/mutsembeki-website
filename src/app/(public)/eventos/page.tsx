@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'Próximos eventos, concertos e apresentações de Mutsembeki.',
 }
 
-export const revalidate = 1800
+export const revalidate = 60
 
 export default async function EventosPage() {
   const [upcoming, past] = await Promise.all([

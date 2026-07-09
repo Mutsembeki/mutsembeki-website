@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: 'Histórias de transformação e testemunhos de vidas tocadas pela música de Mutsembeki.',
 }
 
-export const revalidate = 1800
+export const revalidate = 60
 
 export default async function TestemunhosPage() {
   const testimonies = await prisma.testimony.findMany({
