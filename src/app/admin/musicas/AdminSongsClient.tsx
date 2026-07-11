@@ -3,9 +3,34 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Edit2, Trash2, X, Upload, Music, Download, Headphones, Star } from 'lucide-react'
-import { formatNumber, formatDate, slugify } from '@/lib/utils'
+import { Plus, Edit2, Trash2, X, Upload, Music, Download, Headphones, Star, Loader2 } from 'lucide-react'
+import { formatNumber, formatDate } from '@/lib/utils'
 import type { Song, Category, Album } from '@/types'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+async function uploadToSupabase(file: File, bucket: string): Promise<string> {
+  const ext = file.name.split('.').pop()
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${fileName}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'false',
+    },
+    body: file,
+  })
+
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.message || 'Erro no upload')
+  }
+
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${fileName}`
+}
 
 interface AdminSongsClientProps {
   initialSongs: Song[]
@@ -21,6 +46,7 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null)
 
   function openCreateModal() {
     setEditingSong(null)
@@ -39,15 +65,11 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Tem certeza que deseja excluir esta música? Esta ação não pode ser desfeita.')) return
-
+    if (!confirm('Tem certeza que deseja excluir esta música?')) return
     try {
       const res = await fetch(`/api/admin/musicas/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSongs(prev => prev.filter(s => s.id !== id))
-      } else {
-        alert('Erro ao excluir música.')
-      }
+      if (res.ok) setSongs(prev => prev.filter(s => s.id !== id))
+      else alert('Erro ao excluir música.')
     } catch {
       alert('Erro ao excluir música.')
     }
@@ -57,15 +79,47 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
     e.preventDefault()
     setIsSaving(true)
 
-    const formData = new FormData(e.currentTarget)
-    if (coverFile) formData.set('cover', coverFile)
-    if (audioFile) formData.set('audio', audioFile)
-
     try {
+      const formData = new FormData(e.currentTarget)
+
+      // Upload da capa directamente para o Supabase
+      let coverImageUrl: string | null = editingSong?.coverImage ?? null
+      if (coverFile) {
+        setUploadProgress('A enviar capa...')
+        coverImageUrl = await uploadToSupabase(coverFile, 'covers')
+      }
+
+      // Upload do MP3 directamente para o Supabase
+      let audioUrl: string | null = editingSong?.audioUrl ?? null
+      if (audioFile) {
+        setUploadProgress('A enviar áudio MP3...')
+        audioUrl = await uploadToSupabase(audioFile, 'audio')
+      }
+
+      setUploadProgress('A guardar música...')
+
+      // Enviar apenas os dados (sem ficheiros) para a API
+      const payload = {
+        title: formData.get('title'),
+        categoryId: formData.get('categoryId') || null,
+        albumId: formData.get('albumId') || null,
+        releaseDate: formData.get('releaseDate') || null,
+        youtubeUrl: formData.get('youtubeUrl') || null,
+        lyrics: formData.get('lyrics') || null,
+        featured: formData.get('featured') === 'on',
+        published: formData.get('published') === 'on',
+        coverImage: coverImageUrl,
+        audioUrl: audioUrl,
+      }
+
       const url = editingSong ? `/api/admin/musicas/${editingSong.id}` : '/api/admin/musicas'
       const method = editingSong ? 'PUT' : 'POST'
 
-      const res = await fetch(url, { method, body: formData })
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
 
       if (res.ok) {
         const data = await res.json()
@@ -79,10 +133,11 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
         const err = await res.json()
         alert(err.error || 'Erro ao salvar música.')
       }
-    } catch {
-      alert('Erro ao salvar música.')
+    } catch (err: any) {
+      alert('Erro: ' + (err.message || 'Erro ao salvar música.'))
     } finally {
       setIsSaving(false)
+      setUploadProgress(null)
     }
   }
 
@@ -99,7 +154,6 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
         </button>
       </div>
 
-      {/* Tabela */}
       <div className="card-base p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -128,12 +182,10 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
                           </div>
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-foreground font-medium truncate flex items-center gap-1.5">
-                          {song.title}
-                          {song.featured && <Star className="w-3 h-3 text-gold fill-gold" />}
-                        </p>
-                      </div>
+                      <p className="text-foreground font-medium truncate flex items-center gap-1.5">
+                        {song.title}
+                        {song.featured && <Star className="w-3 h-3 text-gold fill-gold" />}
+                      </p>
                     </div>
                   </td>
                   <td className="p-4">
@@ -176,7 +228,6 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
             </tbody>
           </table>
         </div>
-
         {songs.length === 0 && (
           <div className="text-center py-16 space-y-3">
             <Music className="w-12 h-12 text-muted-foreground mx-auto" />
@@ -186,13 +237,10 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
         )}
       </div>
 
-      {/* Modal de criação/edição */}
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setIsModalOpen(false)}
           >
@@ -238,12 +286,9 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Data de Lançamento</label>
-                    <input
-                      type="date"
-                      name="releaseDate"
+                    <input type="date" name="releaseDate"
                       defaultValue={editingSong?.releaseDate ? new Date(editingSong.releaseDate).toISOString().split('T')[0] : ''}
-                      className="input-base"
-                    />
+                      className="input-base" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Link YouTube</label>
@@ -252,7 +297,6 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Upload capa */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Capa</label>
                     <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-glass-border rounded-xl p-6 cursor-pointer hover:border-gold/50 transition-colors">
@@ -262,22 +306,14 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
                         <Upload className="w-6 h-6 text-muted-foreground" />
                       )}
                       <span className="text-xs text-muted-foreground">{coverFile?.name || 'Escolher imagem'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
+                      <input type="file" accept="image/*" className="hidden"
                         onChange={e => {
                           const file = e.target.files?.[0]
-                          if (file) {
-                            setCoverFile(file)
-                            setCoverPreview(URL.createObjectURL(file))
-                          }
-                        }}
-                      />
+                          if (file) { setCoverFile(file); setCoverPreview(URL.createObjectURL(file)) }
+                        }} />
                     </label>
                   </div>
 
-                  {/* Upload áudio */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Áudio MP3</label>
                     <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-glass-border rounded-xl p-6 cursor-pointer hover:border-gold/50 transition-colors h-full">
@@ -285,25 +321,17 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
                       <span className="text-xs text-muted-foreground text-center">
                         {audioFile?.name || (editingSong?.audioUrl ? 'Áudio já enviado (substituir)' : 'Escolher MP3')}
                       </span>
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        className="hidden"
-                        onChange={e => setAudioFile(e.target.files?.[0] ?? null)}
-                      />
+                      <input type="file" accept="audio/*" className="hidden"
+                        onChange={e => setAudioFile(e.target.files?.[0] ?? null)} />
                     </label>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Letra da Música</label>
-                  <textarea
-                    name="lyrics"
-                    rows={8}
-                    defaultValue={editingSong?.lyrics ?? ''}
+                  <textarea name="lyrics" rows={8} defaultValue={editingSong?.lyrics ?? ''}
                     placeholder="[Verso 1]&#10;...&#10;&#10;[Refrão]&#10;..."
-                    className="input-base resize-none font-mono text-sm"
-                  />
+                    className="input-base resize-none font-mono text-sm" />
                 </div>
 
                 <div className="flex items-center gap-6">
@@ -317,12 +345,19 @@ export function AdminSongsClient({ initialSongs, categories, albums }: AdminSong
                   </label>
                 </div>
 
+                {uploadProgress && (
+                  <div className="flex items-center gap-2 text-gold text-sm bg-glass rounded-xl p-3">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {uploadProgress}
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-4 border-t border-glass-border">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="btn-ghost border border-glass-border rounded-xl flex-1">
                     Cancelar
                   </button>
                   <button type="submit" disabled={isSaving} className="btn-primary flex-1">
-                    {isSaving ? 'Salvando...' : editingSong ? 'Atualizar Música' : 'Criar Música'}
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : editingSong ? 'Atualizar Música' : 'Criar Música'}
                   </button>
                 </div>
               </form>
