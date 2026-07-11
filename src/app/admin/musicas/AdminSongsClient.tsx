@@ -7,8 +7,8 @@ import { Plus, Edit2, Trash2, X, Upload, Music, Download, Headphones, Star, Load
 import { formatNumber, formatDate } from '@/lib/utils'
 import type { Song, Category, Album } from '@/types'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const SUPABASE_URL = 'https://gmqoddtsrqnqmtyekfmu.supabase.co'
+const SUPABASE_ANON_KEY = 'sb_publishable_q7X40bfFit9RwLQ9GcOajg_-Y28kJAv'
 
 async function uploadToSupabase(file: File, bucket: string): Promise<string> {
   const ext = file.name.split('.').pop()
