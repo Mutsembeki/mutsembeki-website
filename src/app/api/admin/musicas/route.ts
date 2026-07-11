@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { uploadImage, uploadAudio } from '@/lib/supabase'
 import { slugify } from '@/lib/utils'
 
 async function requireAdmin() {
   const session = await auth()
-  if (!session?.user || (session.user as any).role !== 'ADMIN') {
-    return null
-  }
+  if (!session?.user || (session.user as any).role !== 'ADMIN') return null
   return session
 }
 
@@ -29,18 +26,13 @@ export async function POST(request: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   try {
-    const formData = await request.formData()
+    const body = await request.json()
 
-    const title = formData.get('title') as string
-    const categoryId = (formData.get('categoryId') as string) || null
-    const albumId = (formData.get('albumId') as string) || null
-    const releaseDate = formData.get('releaseDate') as string
-    const youtubeUrl = (formData.get('youtubeUrl') as string) || null
-    const lyrics = (formData.get('lyrics') as string) || null
-    const featured = formData.get('featured') === 'on'
-    const published = formData.get('published') === 'on'
-    const coverFile = formData.get('cover') as File | null
-    const audioFile = formData.get('audio') as File | null
+    const {
+      title, categoryId, albumId, releaseDate,
+      youtubeUrl, lyrics, featured, published,
+      coverImage, audioUrl,
+    } = body
 
     if (!title) {
       return NextResponse.json({ error: 'Título é obrigatório' }, { status: 400 })
@@ -50,32 +42,19 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.song.findUnique({ where: { slug } })
     if (existing) slug = `${slug}-${Date.now()}`
 
-    let coverImage: string | null = null
-    let audioUrl: string | null = null
-
-    if (coverFile && coverFile.size > 0) {
-      const result = await uploadImage(coverFile, 'mutsembeki/covers')
-      coverImage = result.url
-    }
-
-    if (audioFile && audioFile.size > 0) {
-      const result = await uploadAudio(audioFile, 'mutsembeki/audio')
-      audioUrl = result.url
-    }
-
     const song = await prisma.song.create({
       data: {
         title,
         slug,
-        categoryId,
-        albumId,
+        categoryId: categoryId || null,
+        albumId: albumId || null,
         releaseDate: releaseDate ? new Date(releaseDate) : null,
-        youtubeUrl,
-        lyrics,
-        featured,
-        published,
-        coverImage,
-        audioUrl,
+        youtubeUrl: youtubeUrl || null,
+        lyrics: lyrics || null,
+        featured: !!featured,
+        published: !!published,
+        coverImage: coverImage || null,
+        audioUrl: audioUrl || null,
       },
       include: { category: true, album: true, _count: { select: { downloads: true, views: true } } },
     })
