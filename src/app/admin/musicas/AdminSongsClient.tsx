@@ -8,7 +8,7 @@ import { formatNumber, formatDate } from '@/lib/utils'
 import type { Song, Category, Album } from '@/types'
 
 const SUPABASE_URL = 'https://gmqoddtsrqnqmtyekfmu.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_q7X40bfFit9RwLQ9GcOajg_-Y28kJAv'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtcW9kZHRzcnFucW10eWVrZm11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MzQ2MjUsImV4cCI6MjA5ODQxMDYyNX0.qRKbe6gVUjiV0gfOfqq5jihytdSlS-n4ao7aoc__DcE'
 
 async function uploadToSupabase(file: File, bucket: string): Promise<string> {
   const ext = file.name.split('.').pop()
