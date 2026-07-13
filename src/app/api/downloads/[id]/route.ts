@@ -38,7 +38,7 @@ export async function GET(
     }
 
     const audioBuffer = await audioResponse.arrayBuffer()
-    const filename = `mutsembeki-${song.title.toLowerCase().replace(/\s+/g, '-')}.mp3`
+    const filename = `mutsembeki-${song.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}.mp3`
 
     return new NextResponse(audioBuffer, {
       headers: {
