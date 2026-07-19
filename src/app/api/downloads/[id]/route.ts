@@ -21,7 +21,6 @@ export async function GET(
       return NextResponse.json({ error: 'Áudio não disponível' }, { status: 404 })
     }
 
-    // Registar o download no banco de dados
     await prisma.download.create({
       data: {
         songId: song.id,
@@ -30,7 +29,6 @@ export async function GET(
       },
     })
 
-    // Fazer proxy do ficheiro de áudio via Supabase Storage
     const audioResponse = await fetch(song.audioUrl)
 
     if (!audioResponse.ok) {
@@ -38,13 +36,24 @@ export async function GET(
     }
 
     const audioBuffer = await audioResponse.arrayBuffer()
-    const filename = `${song.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')}.mp3`
+
+    const cleanTitle = song.title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\.mp3$/i, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    const filename = `${cleanTitle}.mp3`
 
     return new NextResponse(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'public, max-age=31536000',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     })
   } catch (error) {
