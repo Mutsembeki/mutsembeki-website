@@ -10,17 +10,27 @@ export async function GET(
 
   try {
     const song = await prisma.song.findUnique({
-      where: { id, published: true },
+      where: {
+        id,
+        published: true,
+      },
     })
 
     if (!song) {
-      return NextResponse.json({ error: 'Música não encontrada' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Música não encontrada' },
+        { status: 404 }
+      )
     }
 
     if (!song.audioUrl) {
-      return NextResponse.json({ error: 'Áudio não disponível' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Áudio não disponível' },
+        { status: 404 }
+      )
     }
 
+    // Registar download
     await prisma.download.create({
       data: {
         songId: song.id,
@@ -29,35 +39,52 @@ export async function GET(
       },
     })
 
-    const audioResponse = await fetch(song.audioUrl)
+    // Buscar ficheiro do Storage
+    const response = await fetch(song.audioUrl)
 
-    if (!audioResponse.ok) {
-      return NextResponse.json({ error: 'Erro ao buscar áudio' }, { status: 500 })
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Erro ao obter o áudio' },
+        { status: 500 }
+      )
     }
 
-    const audioBuffer = await audioResponse.arrayBuffer()
+    const audioBuffer = await response.arrayBuffer()
 
+    // LOGS PARA DEBUG
+    console.log('==============================')
+    console.log('Título BD:', song.title)
+    console.log('Audio URL:', song.audioUrl)
+    console.log('==============================')
+
+    // Limpar nome
     const cleanTitle = song.title
-      .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/\.mp3$/i, '')
-      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .trim()
       .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '')
 
     const filename = `${cleanTitle}.mp3`
+
+    console.log('Nome enviado ao navegador:', filename)
 
     return new NextResponse(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     })
   } catch (error) {
     console.error('Erro no download:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    )
   }
 }
